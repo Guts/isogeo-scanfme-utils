@@ -97,3 +97,13 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+#############
+## Custom
+#############
+
+# configuration file
+settings.ini
+
+# virtual environments
+venv*
