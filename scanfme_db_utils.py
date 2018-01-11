@@ -44,13 +44,13 @@ logfile.setFormatter(log_form)
 logger.addHandler(logfile)
 
 # collections
-d_colls = {'datasets': "",
-           'entrypoints': "",
-           'geodatabases': "",
+d_colls = {'datasets': "where metadata about scanned datasets are stored",
+           'entrypoints': "list of clients entrypoints",
+           'geodatabases': "flat databases",
            'procdatasets': "",
-           'requests': "",
-           'sessions': "",
-           'subscriptions': "",
+           'requests': "list of requests sent to the super worker",
+           'sessions': "active sessions",
+           'subscriptions': "Isogeo Worker clients registered",
            }
 
 
@@ -61,10 +61,12 @@ d_colls = {'datasets': "",
 class IsogeoScanUtils(object):
     """Make easy to get some metrics about Scan FME usage."""
 
-    def __init__(self, settings, def_wg : str=None, platform="qa", ):
+    def __init__(self, access : dict, def_wg : str=None, platform="qa", ):
         """
             Instanciate class, check parameters and add object attributes.
 
+            :param dict access: keys required = username, password,
+                                server, port, db_name, replicaSet
             :param str def_wg: default workgroup UUID to use
             :param str platform: cluster to use qa or prod
         """
@@ -79,15 +81,21 @@ class IsogeoScanUtils(object):
         else:
             pass
 
+        if not set(("username", "password", "server",
+                    "port", "db_name", "replicaSet")) <= set(access):
+            raise KeyError("Required keys are not present in access dict.")
+        else:
+            pass
+
         # add attributes
         self.def_wg = def_wg
         self.platform = platform
-        self.user = settings.get(platform, "username")
-        self.pswd = settings.get(platform, "password")
-        self.serv = settings.get(platform, "server")
-        self.port = settings.get(platform, "port")
-        self.db_name = settings.get(platform, "db_name")
-        self.rep_set = settings.get(platform, "replicaSet")
+        self.user = access.get("username")
+        self.pswd = access.get("password")
+        self.serv = access.get("server")
+        self.port = access.get("port")
+        self.db_name = access.get("db_name")
+        self.rep_set = access.get("replicaSet")
 
     # -- CONNECTION -----------------------------------------------------------
 
@@ -198,9 +206,19 @@ if __name__ == '__main__':
         raise IOError("settings.ini file required")
     else:
         pass
+    # target
+    platform = "qa"
 
     # load settings
     config = configparser.ConfigParser()
     config.read(settings_file)
+    access = {
+              "username": config.get(platform, "username"),
+              "password": config.get(platform, "password"),
+              "server": config.get(platform, "server"),
+              "port": config.get(platform, "port"),
+              "db_name": config.get(platform, "db_name"),
+              "replicaSet": config.get(platform, "replicaSet"),
+              }
 
     # Start
