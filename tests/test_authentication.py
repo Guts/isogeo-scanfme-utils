@@ -11,7 +11,7 @@ from os import environ
 import unittest
 
 import pymongo
-from .scanfme_db_utils import IsogeoScanUtils
+from ..scanfme_db_utils import IsogeoScanUtils
 
 # #############################################################################
 # ######## Globals #################
