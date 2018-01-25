@@ -61,7 +61,7 @@ d_colls = {'datasets': "where metadata about scanned datasets are stored",
 class IsogeoScanUtils(object):
     """Make easy to get some metrics about Scan FME usage."""
 
-    def __init__(self, access : dict, def_wg : str=None, platform="qa", ):
+    def __init__(self, access: dict, def_wg: str=None, platform="qa", ):
         """
             Instanciate class, check parameters and add object attributes.
 
@@ -173,7 +173,7 @@ class IsogeoScanUtils(object):
 
     # -- METRICS -----------------------------------------------------------
 
-    def stats(self, wg:bool=1) -> dict:
+    def stats(self, wg: bool=1) -> dict:
         """
             Perform basic calculation about database.
 
@@ -196,6 +196,7 @@ class IsogeoScanUtils(object):
         # method end
         return counter
 
+
 # ##############################################################################
 # ##### Stand alone program ########
 # ##################################
@@ -212,8 +213,7 @@ if __name__ == '__main__':
     # load settings
     config = configparser.ConfigParser()
     config.read(settings_file)
-    access = {
-              "username": config.get(platform, "username"),
+    access = {"username": config.get(platform, "username"),
               "password": config.get(platform, "password"),
               "server": config.get(platform, "server"),
               "port": config.get(platform, "port"),
