@@ -47,7 +47,7 @@ logger.addHandler(logfile)
 d_colls = {'datasets': "where metadata about scanned datasets are stored",
            'entrypoints': "list of clients entrypoints",
            'geodatabases': "flat databases",
-           'procdatasets': "",
+           'procdatasets': "history of all datasets which have been scanned",
            'requests': "list of requests sent to the super worker",
            'sessions': "active sessions",
            'subscriptions': "Isogeo Worker clients registered",
@@ -169,7 +169,10 @@ class IsogeoScanUtils(object):
 
     def get_ds_workgroup(self, workgroup_id: str):
         """Lists datasets which have been scanned by a specific workgroup."""
-        pass
+        counter = {coll: self.db
+                             .get_collection(coll)
+                             .find({"groupId": self.def_wg})
+                   for coll in d_colls}
 
     # -- METRICS -----------------------------------------------------------
 
@@ -178,9 +181,7 @@ class IsogeoScanUtils(object):
             Perform basic calculation about database.
 
             :param bool wg: option to filter on the default workgroup
-
         """
-        # , self.db.command("dbstats")
         if wg == 1:
             counter = {coll: self.db.get_collection(coll)
                                     .find({"groupId": self.def_wg})
@@ -195,6 +196,25 @@ class IsogeoScanUtils(object):
 
         # method end
         return counter
+
+    def registered_services(self, wg: bool=1):
+        """
+            Inform about installed services in a workgroup.
+
+            :param bool wg: option to filter on the default workgroup.
+        """
+        if wg == 1:
+            wg_srv = self.colls.get("subscriptions")\
+                               .find({"groupId": self.def_wg})
+            return wg_srv
+        elif wg == 0:
+            subscriptions = self.colls.get("subscriptions")
+            db_srvs = {"srvs_uptodate": subscriptions.find({"workers.version": "2.1.0"}),
+                       "srvs_outdated": subscriptions.find({"workers.version": {"$ne": "2.1.0"}}),
+                       }
+            return db_srvs
+        else:
+            raise ValueError("A boolean value is required.")
 
 
 # ##############################################################################
@@ -222,3 +242,33 @@ if __name__ == '__main__':
               }
 
     # Start
+    app = IsogeoScanUtils(access=access,
+                          def_wg=config.get(platform, "wg"),
+                          platform=platform)
+    cli = app.connect()
+    # print(type(cli), type(app.db))
+    # print(app.colls)
+    # print(type(app.colls.get("subscriptions")))
+
+    # # utils
+    # print(app.ds_is_duplicated("tache_urbaine"))
+
+    # # Stats
+    # print(app.stats())  # per workgroup
+    # print(app.stats(0))  # whole DB
+
+    # srv info
+    srv_info_wg = app.registered_services()
+    print(# dir(srv_info_wg),
+          # type(srv_info_wg[0]),
+          srv_info_wg[0].keys(),
+          srv_info_wg[0].get("__v"),
+          srv_info_wg[0].get("workers")[0].get("version")
+          )
+
+    srv_info_db = app.registered_services(0)
+
+    print("{} services are up to date"
+          .format(srv_info_db.get("srvs_uptodate").count()))
+    print("{} services are outdated"
+          .format(srv_info_db.get("srvs_outdated").count()))
