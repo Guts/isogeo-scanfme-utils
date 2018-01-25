@@ -1,6 +1,5 @@
 # -*- coding: UTF-8 -*-
 #! python3
-from __future__ import (absolute_import, print_function, unicode_literals)
 
 # #############################################################################
 # ########## Libraries #############
@@ -11,7 +10,8 @@ from os import environ
 import unittest
 
 import pymongo
-from ..scanfme_db_utils import IsogeoScanUtils
+from scanfme_db_utils import IsogeoScanUtils
+
 
 # #############################################################################
 # ######## Globals #################
