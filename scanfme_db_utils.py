@@ -61,7 +61,8 @@ d_colls = {'datasets': "where metadata about scanned datasets are stored",
 class IsogeoScanUtils(object):
     """Make easy to get some metrics about Scan FME usage."""
 
-    def __init__(self, access: dict, def_wg: str=None, platform="qa", ):
+    def __init__(self, access: dict, def_wg: str=None,
+                 platform="qa", wk_v: str="2.1.0"):
         """
             Instanciate class, check parameters and add object attributes.
 
@@ -69,6 +70,7 @@ class IsogeoScanUtils(object):
                                 server, port, db_name, replicaSet
             :param str def_wg: default workgroup UUID to use
             :param str platform: cluster to use qa or prod
+            :param str wk_v: service Isogeo worker reference version
         """
         # check parameters
         if platform.lower() not in ("qa", "prod"):
@@ -96,6 +98,7 @@ class IsogeoScanUtils(object):
         self.port = access.get("port")
         self.db_name = access.get("db_name")
         self.rep_set = access.get("replicaSet")
+        self.wk_vers = wk_v
 
     # -- CONNECTION -----------------------------------------------------------
 
