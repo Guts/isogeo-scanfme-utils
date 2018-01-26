@@ -38,7 +38,8 @@ class DbStats(unittest.TestCase):
     """Test authentication process."""
     app = IsogeoScanUtils(access=access,
                           def_wg=environ.get("wg_test"),
-                          platform="qa")
+                          platform="qa",
+                          wk_v=environ.get("srv_version_ref"))
     cli = app.connect()
 
     # standard methods
@@ -61,6 +62,7 @@ class DbStats(unittest.TestCase):
         self.assertTrue(hasattr(self.app, "port"))
         self.assertTrue(hasattr(self.app, "db_name"))
         self.assertTrue(hasattr(self.app, "rep_set"))
+        self.assertTrue(hasattr(self.app, "wk_vers"))
         self.assertTrue(hasattr(self.app, "colls"))
         self.assertIsInstance(self.app.db, pymongo.database.Database)
         self.assertIsInstance(self.app.colls, pymongo.collection.Collection)

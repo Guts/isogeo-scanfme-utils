@@ -48,9 +48,11 @@ class DbAuthentication(unittest.TestCase):
         """API secret must be 64 length."""
         app = IsogeoScanUtils(access=access,
                               def_wg=environ.get("wg_test"),
-                              platform="qa")
+                              platform="qa",
+                              wk_v=environ.get("srv_version_ref"))
         cli = app.connect()
         self.assertIsInstance(cli, pymongo.mongo_client.MongoClient)
+
 
 # #############################################################################
 # ######## Standalone ##############
