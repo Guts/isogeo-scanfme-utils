@@ -236,36 +236,78 @@ class IsogeoScanUtils(object):
 
             :param bool wg: filter on the default workgroup
         """
-        rq = self.colls.get("requests")
+        rqs = self.colls.get("requests")
         if wg == 1:
-            # wg_srv = self.colls.get("subscriptions")\
-            #                    .find({"groupId": self.def_wg})
-            rq_report = {"rq_finish": rq.find({"groupId": self.def_wg,
-                                               "state": "finished"}).count(),
-                         "rq_finish_last": rq.find({"groupId": self.def_wg,
-                                                    "state": "finished"}).limit(1)[0]
-                                                                         .get("err"),
-                         "rq_broken": rq.find({"groupId": self.def_wg,
-                                               "state": "broken"}).count(),
-                         "rq_broken_last": rq.find({"groupId": self.def_wg,
-                                                    "state": "broken"}).limit(1)[0]
-                                                                       .get("err"),
-                         "rq_killed": rq.find({"groupId": self.def_wg,
-                                               "state": "killed"}).count(),
-                         "rq_killed_last": rq.find({"groupId": self.def_wg,
-                                                    "state": "killed"}).limit(1)[0]
-                                                                       .get("err"),
+            # finished requests
+            rq_finish = rqs.find({"groupId": self.def_wg,
+                                  "state": "finished"}).count()
+            if rq_finish:
+                rq_finish_last = rqs.find({"groupId": self.def_wg,
+                                           "state": "finished"}).limit(1)[0]\
+                                                                .get("_id"),
+            else:
+                rq_finish_last = None
+                pass
+            # broken requests
+            rq_broken = rqs.find({"groupId": self.def_wg,
+                                  "state": "broken"}).count()
+            if rq_broken:
+                rq_broken_last = rqs.find({"groupId": self.def_wg,
+                                           "state": "broken"}).limit(1)[0]\
+                                                              .get("err"),
+            else:
+                rq_broken_last = None
+                pass
+            # killed requests
+            rq_killed = rqs.find({"groupId": self.def_wg,
+                                  "state": "killed"}).count()
+            if rq_killed:
+                rq_killed_last = rqs.find({"groupId": self.def_wg,
+                                           "state": "killed"}).limit(1)[0]\
+                                                              .get("err"),
+            else:
+                rq_killed_last = None
+                pass
+            # storing
+            rq_report = {"rq_finish": rq_finish,
+                         "rq_finish_last": rq_finish_last,
+                         "rq_broken": rq_broken,
+                         "rq_broken_last": rq_broken_last,
+                         "rq_killed": rq_killed,
+                         "rq_killed_last": rq_killed_last,
                          }
         elif wg == 0:
-            rq_report = {"rq_finish": rq.find({"state": "finished"}).count(),
-                         "rq_finish_last": rq.find({"state": "finished"}).limit(1)[0]
-                                                                         .get("err"),
-                         "rq_broken": rq.find({"state": "broken"}).count(),
-                         "rq_broken_last": rq.find({"state": "broken"}).limit(1)[0]
-                                                                       .get("err"),
-                         "rq_killed": rq.find({"state": "killed"}).count(),
-                         "rq_killed_last": rq.find({"state": "killed"}).limit(1)[0]
-                                                                       .get("err"),
+            # finished requests
+            rq_finish = rqs.find({"state": "finished"}).count()
+            if rq_finish:
+                rq_finish_last = rqs.find({"state": "finished"}).limit(1)[0]\
+                                                                .get("_id"),
+            else:
+                rq_finish_last = None
+                pass
+            # broken requests
+            rq_broken = rqs.find({"state": "broken"}).count()
+            if rq_broken:
+                rq_broken_last = rqs.find({"state": "broken"}).limit(1)[0]\
+                                                              .get("err"),
+            else:
+                rq_broken_last = None
+                pass
+            # killed requests
+            rq_killed = rqs.find({"state": "killed"}).count()
+            if rq_killed:
+                rq_killed_last = rqs.find({"state": "killed"}).limit(1)[0]\
+                                                              .get("err"),
+            else:
+                rq_killed_last = None
+                pass
+            # storing
+            rq_report = {"rq_finish": rq_finish,
+                         "rq_finish_last": rq_finish_last,
+                         "rq_broken": rq_broken,
+                         "rq_broken_last": rq_broken_last,
+                         "rq_killed": rq_killed,
+                         "rq_killed_last": rq_killed_last,
                          }
         else:
             raise ValueError("A boolean value is required.")
