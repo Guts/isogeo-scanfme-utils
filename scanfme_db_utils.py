@@ -12,6 +12,7 @@
 
 # Standard library
 import configparser
+import csv
 import logging
 from logging.handlers import RotatingFileHandler
 from os import path
@@ -38,7 +39,7 @@ logging.captureWarnings(True)
 logger.setLevel(log_lvl)
 log_form = logging.Formatter("%(asctime)s || %(levelname)s "
                              "|| %(module)s || %(lineno)s || %(message)s")
-logfile = RotatingFileHandler("LOG.log", "a", 5000000, 1)
+logfile = RotatingFileHandler("LOG_ScanFME_Utils.log", "a", 5000000, 1)
 logfile.setLevel(log_lvl)
 logfile.setFormatter(log_form)
 logger.addHandler(logfile)
@@ -176,19 +177,20 @@ class IsogeoScanUtils(object):
                              .get_collection(coll)
                              .find({"groupId": self.def_wg})
                    for coll in d_colls}
+        return counter
 
     # -- METRICS -----------------------------------------------------------
 
-    def stats(self, wg: bool=1) -> dict:
+    def colls_stats(self, wg: bool=1) -> dict:
         """
             Perform basic calculation about database.
 
             :param bool wg: option to filter on the default workgroup
         """
         if wg == 1:
-            counter = {coll: self.db.get_collection(coll)
-                                    .find({"groupId": self.def_wg})
-                                    .count()
+            counter = {coll: self.colls.get(coll)
+                                       .find({"groupId": self.def_wg})
+                                       .count()
                        for coll in d_colls}
         elif wg == 0:
             counter = {coll: self.db.get_collection(coll)
@@ -200,7 +202,95 @@ class IsogeoScanUtils(object):
         # method end
         return counter
 
-    def registered_services(self, wg: bool=1):
+    def ds_diagnosis(self, wg: bool=1) -> dict:
+        """
+            Some diagnosis on datasets collection:
+                - count of scanned datasets without isogeo_id matching.
+
+            :param bool wg: option to filter on the default workgroup
+        """
+        datasets = self.colls.get("datasets")
+        if wg == 1:
+            ds_report = {"no_isogeo_id": datasets.find({"groupId": self.def_wg,
+                                                        "isogeo_id": {"$exists": False}}).count(),
+                         }
+        elif wg == 0:
+            ds_report = {"no_isogeo_id": datasets.find({"isogeo_id": {"$exists": False}}).count(),
+                         }
+        else:
+            raise ValueError("A boolean value is required.")
+
+        # method end
+        return ds_report
+
+    def rq_diagnosis(self, wg: bool=1):
+        """
+            Inform about requests.
+
+            :param bool wg: filter on the default workgroup
+        """
+        rq = self.colls.get("requests")
+        if wg == 1:
+            # wg_srv = self.colls.get("subscriptions")\
+            #                    .find({"groupId": self.def_wg})
+            rq_report = {"rq_finish": rq.find({"groupId": self.def_wg,
+                                               "state": "finished"}).count(),
+                         "rq_finish_last": rq.find({"groupId": self.def_wg,
+                                                    "state": "finished"}).limit(1)[0]
+                                                                         .get("err"),
+                         "rq_broken": rq.find({"groupId": self.def_wg,
+                                               "state": "broken"}).count(),
+                         "rq_broken_last": rq.find({"groupId": self.def_wg,
+                                                    "state": "broken"}).limit(1)[0]
+                                                                       .get("err"),
+                         "rq_killed": rq.find({"groupId": self.def_wg,
+                                               "state": "killed"}).count(),
+                         "rq_killed_last": rq.find({"groupId": self.def_wg,
+                                                    "state": "killed"}).limit(1)[0]
+                                                                       .get("err"),
+                         }
+        elif wg == 0:
+            rq_report = {"rq_finish": rq.find({"state": "finished"}).count(),
+                         "rq_finish_last": rq.find({"state": "finished"}).limit(1)[0]
+                                                                         .get("err"),
+                         "rq_broken": rq.find({"state": "broken"}).count(),
+                         "rq_broken_last": rq.find({"state": "broken"}).limit(1)[0]
+                                                                       .get("err"),
+                         "rq_killed": rq.find({"state": "killed"}).count(),
+                         "rq_killed_last": rq.find({"state": "killed"}).limit(1)[0]
+                                                                       .get("err"),
+                         }
+        else:
+            raise ValueError("A boolean value is required.")
+
+        # method end
+        return rq_report
+
+    def wk_diagnosis(self, wg: bool=1):
+        """
+            Inform about installed services in a workgroup.
+
+            :param bool wg: filter on the default workgroup
+        """
+        wks = self.colls.get("subscriptions")
+        if wg == 1:
+            # wg_srv = self.colls.get("subscriptions")\
+            #                    .find({"groupId": self.def_wg})
+            wk_report = {"srvs_uptodate": wks.find({"groupId": self.def_wg,
+                                                    "workers.version": self.wk_vers}),
+                         "srvs_outdated": wks.find({"groupId": self.def_wg,
+                                                    "workers.version": {"$ne": self.wk_vers}}),
+                         }
+        elif wg == 0:
+            wk_report = {"srvs_uptodate": wks.find({"workers.version": self.wk_vers}),
+                         "srvs_outdated": wks.find({"workers.version": {"$ne": self.wk_vers}}),
+                         }
+        else:
+            raise ValueError("A boolean value is required.")
+
+        # method end
+        return wk_report
+
         """
             Inform about installed services in a workgroup.
 
@@ -231,7 +321,7 @@ if __name__ == '__main__':
     else:
         pass
     # target
-    platform = "qa"
+    platform = "prod"
 
     # load settings
     config = configparser.ConfigParser()
