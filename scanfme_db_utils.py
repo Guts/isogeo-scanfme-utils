@@ -354,6 +354,8 @@ class IsogeoScanUtils(object):
             # retrieve data
             stats_colls = self.colls_stats()
             stats_ds = self.ds_diagnosis()
+            stats_rq = self.rq_diagnosis()
+            stats_wk = self.wk_diagnosis()
             # prepare csv output file
             csv_out = path.normpath(path.join(folder,
                                               "ScanFME_Report_{}_{}_{}"
@@ -438,12 +440,6 @@ if __name__ == '__main__':
                           platform=platform,
                           wk_v=config.get(platform, "srv_version"))
     cli = app.connect()
-    # print(type(cli), type(app.db))
-    # print(app.colls)
-    # print(type(app.colls.get("subscriptions")))
-
-    # # utils
-    # print(app.ds_is_duplicated("tache_urbaine"))
 
     # collections overview
     print(app.colls_stats())  # per workgroup
@@ -460,3 +456,6 @@ if __name__ == '__main__':
     # srv info
     print(app.wk_diagnosis())  # per workgroup
     print(app.wk_diagnosis(0))  # whole DB
+
+    app.csv_report("test.csv")
+    app.csv_report("test.csv", wg=0)
