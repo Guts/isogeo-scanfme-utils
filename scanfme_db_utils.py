@@ -45,14 +45,21 @@ logfile.setFormatter(log_form)
 logger.addHandler(logfile)
 
 # collections
-d_colls = {'datasets': "where metadata about scanned datasets are stored",
-           'entrypoints': "list of clients entrypoints",
-           'geodatabases': "flat databases",
-           'procdatasets': "history of all datasets which have been scanned",
-           'requests': "list of requests sent to the super worker",
-           'sessions': "active sessions",
-           'subscriptions': "Isogeo Worker clients registered",
+d_colls = {'datasets': "where metadata about scanned datasets are stored | ABBRV: DS",
+           'entrypoints': "list of clients entrypoints | ABBRV: DS",
+           'geodatabases': "flat databases | ABBRV: GD",
+           'procdatasets': "history of all datasets which have been scanned | ABBRV: PD",
+           'requests': "list of requests sent to the super worker | ABBRV: RQ",
+           'sessions': "active sessions | ABBRV: SS",
+           'subscriptions': "Isogeo Worker clients registered | ABBRV: SB",
            }
+
+# CSV settings (see: https://pymotw.com/3/csv/)
+csv.register_dialect("pipe",
+                     delimiter="|",
+                     escapechar="\\",
+                     skipinitialspace=1
+                     )
 
 
 # #############################################################################
@@ -291,23 +298,72 @@ class IsogeoScanUtils(object):
         # method end
         return wk_report
 
+    # -- CSV REPORT ----------------------------------------------------------
+
+    def csv_report(self, csv_name: str, wg: bool=1, folder: str="./reports"):
         """
             Inform about installed services in a workgroup.
 
-            :param bool wg: option to filter on the default workgroup.
+            :param str csv_name: CSV filename (extension required)
+            :param bool wg: filter on the default workgroup
+            :param str foler: parent folder where to write the CSV file
         """
         if wg == 1:
-            wg_srv = self.colls.get("subscriptions")\
-                               .find({"groupId": self.def_wg})
-            return wg_srv
+            # retrieve data
+            stats_colls = self.colls_stats()
+            stats_ds = self.ds_diagnosis()
+            # prepare csv output file
+            csv_out = path.normpath(path.join(folder,
+                                              "ScanFME_Report_{}_{}_{}"
+                                              .format(self.platform.upper(),
+                                                      self.def_wg,
+                                                      csv_name))
+                                    )
+            with open(csv_out, 'w', newline='') as csvfile:
+                fieldnames = ("wg_id", "wg_name", "wg_url", "wg_ds_count",
+                              "wg_ep_count", "wg_wk_count", "wg_rq_count",
+                              "wg_gd_count", "wg_pd_count")
+                writer = csv.DictWriter(csvfile,
+                                        dialect="pipe",
+                                        fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerow({"wg_id": self.def_wg,
+                                 "wg_name": "haha",
+                                 "wg_url": "hihi",
+                                 "wg_ds_count": stats_colls.get("datasets"),
+                                 "wg_wk_count": stats_colls.get("subscriptions"),
+                                 "wg_rq_count": stats_colls.get("requests"),
+                                 "wg_ep_count": stats_colls.get("entrypoints"),
+                                 "wg_gd_count": stats_colls.get("geodatabases"),
+                                 "wg_pd_count": stats_colls.get("procdatasets"),
+                                 }
+                                )
         elif wg == 0:
-            subscriptions = self.colls.get("subscriptions")
-            db_srvs = {"srvs_uptodate": subscriptions.find({"workers.version": "2.1.0"}),
-                       "srvs_outdated": subscriptions.find({"workers.version": {"$ne": "2.1.0"}}),
-                       }
-            return db_srvs
+            # retrieve data
+            stats_colls = self.colls_stats(0)
+            stats_ds = self.ds_diagnosis(0)
+            # prepare csv output file
+            csv_out = path.normpath(path.join(folder, "ScanFME_Report_{}_DB_{}"
+                                                      .format(self.platform,
+                                                              csv_name))
+                                    )
+            with open(csv_out, 'w', newline='') as csvfile:
+                fieldnames = ("wg_id", "wg_name", "wg_url", "wg_ds_count")
+                writer = csv.DictWriter(csvfile,
+                                        dialect="pipe",
+                                        fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerow({"wg_id": "hoho",
+                                 "wg_name": "haha",
+                                 "wg_url": "hihi",
+                                 "wg_ds_count": "héhé",
+                                 }
+                                )
         else:
             raise ValueError("A boolean value is required.")
+
+        # end method
+        return csvfile
 
 
 # ##############################################################################
@@ -337,7 +393,8 @@ if __name__ == '__main__':
     # Start
     app = IsogeoScanUtils(access=access,
                           def_wg=config.get(platform, "wg"),
-                          platform=platform)
+                          platform=platform,
+                          wk_v=config.get(platform, "srv_version"))
     cli = app.connect()
     # print(type(cli), type(app.db))
     # print(app.colls)
@@ -346,22 +403,18 @@ if __name__ == '__main__':
     # # utils
     # print(app.ds_is_duplicated("tache_urbaine"))
 
-    # # Stats
-    # print(app.stats())  # per workgroup
-    # print(app.stats(0))  # whole DB
+    # collections overview
+    print(app.colls_stats())  # per workgroup
+    print(app.colls_stats(0))  # whole DB
+
+    # datasets overview
+    print(app.ds_diagnosis())  # per workgroup
+    print(app.ds_diagnosis(0))  # whole DB
+
+    # requests overview
+    print(app.rq_diagnosis())  # per workgroup
+    print(app.rq_diagnosis(0))  # whole DB
 
     # srv info
-    srv_info_wg = app.registered_services()
-    print(# dir(srv_info_wg),
-          # type(srv_info_wg[0]),
-          srv_info_wg[0].keys(),
-          srv_info_wg[0].get("__v"),
-          srv_info_wg[0].get("workers")[0].get("version")
-          )
-
-    srv_info_db = app.registered_services(0)
-
-    print("{} services are up to date"
-          .format(srv_info_db.get("srvs_uptodate").count()))
-    print("{} services are outdated"
-          .format(srv_info_db.get("srvs_outdated").count()))
+    print(app.wk_diagnosis())  # per workgroup
+    print(app.wk_diagnosis(0))  # whole DB
