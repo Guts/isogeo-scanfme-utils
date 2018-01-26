@@ -53,7 +53,7 @@ class DbStats(unittest.TestCase):
 
     # tests
     def test_attributes(self):
-        """API secret must be 64 length."""
+        """Test attributes."""
         self.assertTrue(hasattr(self.app, "def_wg"))
         self.assertTrue(hasattr(self.app, "platform"))
         self.assertTrue(hasattr(self.app, "user"))
@@ -65,7 +65,7 @@ class DbStats(unittest.TestCase):
         self.assertTrue(hasattr(self.app, "wk_vers"))
         self.assertTrue(hasattr(self.app, "colls"))
         self.assertIsInstance(self.app.db, pymongo.database.Database)
-        self.assertIsInstance(self.app.colls, pymongo.collection.Collection)
+        self.assertIsInstance(self.app.colls.get("datasets"), pymongo.collection.Collection)
 
 
 # #############################################################################
