@@ -4,6 +4,15 @@
 
 A quicky class to perform some regular operations on Isogeo Scan FME database.
 
+
+## Features
+
+* get scanned datasets by an Isogeo workgroup
+* get installed workers by an Isogeo Workgroup
+* export reports in CSV
+
+---
+
 ## Setup
 
 ### Prerequisites
