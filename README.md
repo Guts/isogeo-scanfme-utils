@@ -4,3 +4,23 @@
 
 A quicky class to perform some regular operations on Isogeo Scan FME database.
 
+## Setup
+
+### Prerequisites
+
+* Python 3.5+
+* Internet connection
+
+### Environment
+
+In a Powershell (or Bash) command prompt:
+
+```ps
+py -3 -m venv venv
+.\venv3\Scripts\activate  # or source venv/bin/source on Unix OS
+pip install --upgrade -r .\requirements.txt
+```
+
+## Usage
+
+TO DOC
