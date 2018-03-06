@@ -15,7 +15,7 @@ A quicky class to perform some regular operations on Isogeo Scan FME database.
 
 In a Powershell (or Bash) command prompt:
 
-```ps
+```powershell
 py -3 -m venv venv
 .\venv3\Scripts\activate  # or source venv/bin/source on Unix OS
 pip install --upgrade -r .\requirements.txt
@@ -25,8 +25,8 @@ pip install --upgrade -r .\requirements.txt
 
 Rename `settings_TPL.ini`into `settings.ini`:
 
-```ps
-Rename-Item -Path .\settings_TPL.ini -NewName settings.ini
+```powershell
+Rename-Item -Path ".\settings_TPL.ini" -NewName "settings.ini"
 ```
 
 And complete the different parameters.
