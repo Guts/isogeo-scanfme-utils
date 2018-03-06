@@ -21,6 +21,16 @@ py -3 -m venv venv
 pip install --upgrade -r .\requirements.txt
 ```
 
+### Settings
+
+Rename `settings_TPL.ini`into `settings.ini`:
+
+```ps
+Rename-Item -Path .\settings_TPL.ini -NewName settings.ini
+```
+
+And complete the different parameters.
+
 ## Usage
 
 TO DOC
