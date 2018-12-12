@@ -1,0 +1,19 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+pylint = "*"
+codecov = "*"
+autopep8 = "*"
+
+[packages]
+amqp = "==2.2.*"
+gevent = "==1.2.*"
+pymongo = "==3.6.*"
+Jinja2 = "==2.*"
+click = "*"
+
+[requires]
+python_version = "3.6"
