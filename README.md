@@ -1,9 +1,8 @@
 # Isogeo Scan FME utils
 
-[![Build Status](https://travis-ci.org/Guts/isogeo-scanfme-utils.svg?branch=master)](https://travis-ci.org/Guts/isogeo-scanfme-utils) ![Python 3.5](https://img.shields.io/badge/python-3.5-blue.svg) ![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)
+[![Build Status](https://travis-ci.org/isogeo/isogeo-scanfme-utils.svg?branch=master)](https://travis-ci.org/isogeo/isogeo-scanfme-utils) ![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)
 
 A quicky class to perform some regular operations on Isogeo Scan FME database.
-
 
 ## Features
 
@@ -17,8 +16,9 @@ A quicky class to perform some regular operations on Isogeo Scan FME database.
 
 ### Prerequisites
 
-* Python 3.5+
+* Python 3.6+
 * Internet connection
+* credentials to access Isogeo DB
 
 ### Environment
 
@@ -32,14 +32,16 @@ pip install --upgrade -r .\requirements.txt
 
 ### Settings
 
-Rename `settings_TPL.ini`into `settings.ini`:
+Rename `settings_TPL.ini` into `settings.ini`:
 
 ```powershell
 Rename-Item -Path ".\settings_TPL.ini" -NewName "settings.ini"
 ```
 
-And complete the different parameters.
+And complete the different parameters (database credentials...).
 
 ## Usage
 
-TO DOC
+```powershell
+python .\scanfme_db_utils.py
+```

@@ -11,7 +11,6 @@
 # ##################################
 
 # Standard library
-import configparser
 import csv
 import logging
 from logging.handlers import RotatingFileHandler
@@ -22,7 +21,7 @@ from urllib.parse import quote_plus
 # 3rd party library
 from gevent import monkey
 monkey.patch_all()
-from pymongo import MongoClient
+from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
 # ##############################################################################
@@ -30,7 +29,6 @@ from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 # ##################################
 
 # settings
-settings_file = r"settings.ini"
 log_lvl = logging.DEBUG
 
 # LOG FILE ##
@@ -323,16 +321,21 @@ class IsogeoScanUtils(object):
         """
         wks = self.colls.get("subscriptions")
         if wg == 1:
-            # wg_srv = self.colls.get("subscriptions")\
-            #                    .find({"groupId": self.def_wg})
             wk_report = {"srvs_uptodate": wks.find({"groupId": self.def_wg,
                                                     "workers.version": self.wk_vers}),
                          "srvs_outdated": wks.find({"groupId": self.def_wg,
+                                                    "workers": {"$exists": 1},
                                                     "workers.version": {"$ne": self.wk_vers}}),
+                         "srvs_no_created": wks.find({"groupId": self.def_wg,
+                                                      "workers": {"$exists": 0}
+                                                      }),
                          }
         elif wg == 0:
-            wk_report = {"srvs_uptodate": wks.find({"workers.version": self.wk_vers}),
-                         "srvs_outdated": wks.find({"workers.version": {"$ne": self.wk_vers}}),
+            wk_report = {"srvs_uptodate": wks.find({"workers.version": self.wk_vers}).sort("groupId", ASCENDING),
+                         "srvs_outdated": wks.find({"workers": {"$exists": 1},
+                                                    "workers.version": {"$ne": self.wk_vers}}).sort("groupId", ASCENDING),
+                         "srvs_no_created": wks.find({"workers": {"$exists": 0}}).sort("groupId", ASCENDING),
+                         "srvs_no_install": wks.find({"workers": {"$size": 0}}).sort("groupId", ASCENDING),
                          }
         else:
             raise ValueError("A boolean value is required.")
@@ -364,7 +367,7 @@ class IsogeoScanUtils(object):
                                                       csv_name))
                                     )
             with open(csv_out, 'w', newline='') as csvfile:
-                fieldnames = ("wg_id", "wg_name", "wg_url", "wg_ds_count",
+                fieldnames = ("wg_id", "wg_url", "wg_ds_count",
                               "wg_ep_count", "wg_wk_count", "wg_rq_count",
                               "wg_gd_count", "wg_pd_count")
                 writer = csv.DictWriter(csvfile,
@@ -372,8 +375,8 @@ class IsogeoScanUtils(object):
                                         fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerow({"wg_id": self.def_wg,
-                                 "wg_name": "haha",
-                                 "wg_url": "hihi",
+                                 "wg_url": "https://daemons.isogeo.com/g/{}"
+                                           .format(self.def_wg),
                                  "wg_ds_count": stats_colls.get("datasets"),
                                  "wg_wk_count": stats_colls.get("subscriptions"),
                                  "wg_rq_count": stats_colls.get("requests"),
@@ -386,25 +389,93 @@ class IsogeoScanUtils(object):
             # retrieve data
             stats_colls = self.colls_stats(0)
             stats_ds = self.ds_diagnosis(0)
+            stats_rq = self.rq_diagnosis(0)
+            stats_wk = self.wk_diagnosis(0)
             # prepare csv output file
             csv_out = path.normpath(path.join(folder, "ScanFME_Report_{}_DB_{}"
                                                       .format(self.platform,
                                                               csv_name))
                                     )
             with open(csv_out, 'w', newline='') as csvfile:
-                fieldnames = ("wg_id", "wg_name", "wg_url", "wg_ds_count")
+                fieldnames = ("wg_id", "wg_url", "wg_ds_count", "")
                 writer = csv.DictWriter(csvfile,
                                         dialect="pipe",
                                         fieldnames=fieldnames)
                 writer.writeheader()
                 writer.writerow({"wg_id": "hoho",
-                                 "wg_name": "haha",
+                                 "wg_url": "https://daemons.isogeo.com/g/{}"
+                                           .format(self.def_wg),
                                  "wg_url": "hihi",
                                  "wg_ds_count": "héhé",
                                  }
                                 )
         else:
             raise ValueError("A boolean value is required.")
+
+        # end method
+        return csvfile
+
+    def workers_report(self, csv_name: str, folder: str="./reports"):
+        """
+            Inform about installed services.
+
+            :param str csv_name: CSV filename (extension required)
+            :param str foler: parent folder where to write the CSV file
+        """
+        # retrieve data
+        wks = self.wk_diagnosis(0)
+        # prepare csv output file
+        csv_out = path.normpath(path.join(folder,
+                                          "ScanFME_Report_Workers_{}_{}"
+                                          .format(self.platform,
+                                                  csv_name))
+                                )
+        with open(csv_out, 'w', newline='') as csvfile:
+            fieldnames = ("wg_id", "wg_url", "wk_id", "wk_count", "wk_uptodate", "wk_name", "wk_version")
+            writer = csv.DictWriter(csvfile,
+                                    dialect="pipe",
+                                    fieldnames=fieldnames)
+            writer.writeheader()
+            try:
+                for wk in wks.get("srvs_uptodate"):
+                    writer.writerow({"wg_id": wk.get("groupId"),
+                                     "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker"
+                                               .format(wk.get("groupId")),
+                                     "wk_id": wk.get("_id"),
+                                     "wk_count": len(wk.get("workers")),
+                                     "wk_uptodate": 1,
+                                     "wk_name": wk.get("workers")[0].get("givenName"),
+                                     "wk_version": wk.get("workers")[0].get("version"),
+                                     }
+                                    )
+                for wk in wks.get("srvs_outdated"):
+                    if len(wk.get("workers")) == 0:
+                        wk["workers"] = [{"givenName": "",
+                                          "version": ""}, ]
+                    else:
+                        pass
+                    writer.writerow({"wg_id": wk.get("groupId"),
+                                     "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker"
+                                               .format(wk.get("groupId")),
+                                     "wk_id": wk.get("_id"),
+                                     "wk_count": len(wk.get("workers", "")),
+                                     "wk_uptodate": 0,
+                                     "wk_name": wk.get("workers")[0].get("givenName"),
+                                     "wk_version": wk.get("workers")[0].get("version"),
+                                     }
+                                    )
+                for wk in wks.get("srvs_no_created"):
+                    writer.writerow({"wg_id": wk.get("groupId"),
+                                     "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker"
+                                               .format(wk.get("groupId")),
+                                     "wk_id": wk.get("_id"),
+                                     "wk_count": 0,
+                                     "wk_uptodate": 0,
+                                     }
+                                    )
+            except Exception as e:
+                logger.error(e)
+                logger.error("https://mlab.com/clusters/rs-ds053053/databases/scanfme-prod-cluster/collections/subscriptions?_id={}".format(wk.get("_id")), wk.get("workers"))
 
         # end method
         return csvfile
@@ -416,6 +487,9 @@ class IsogeoScanUtils(object):
 
 if __name__ == '__main__':
     """Standalone execution."""
+    import configparser
+    settings_file = r"settings.ini"
+    # check ini file
     if not path.isfile(path.realpath(settings_file)):
         raise IOError("settings.ini file required")
     else:
@@ -455,7 +529,10 @@ if __name__ == '__main__':
 
     # srv info
     print(app.wk_diagnosis())  # per workgroup
-    print(app.wk_diagnosis(0))  # whole DB
+    wks = app.wk_diagnosis(0)  # whole DB
+    print(wks.get("srvs_outdated")[1].keys())
 
     app.csv_report("test.csv")
     app.csv_report("test.csv", wg=0)
+
+    app.workers_report("test.csv")
