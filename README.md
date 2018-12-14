@@ -6,6 +6,7 @@ A quicky class to perform some regular operations on Isogeo Scan FME database.
 
 ## Features
 
+* make a report about the Isogeo Worker (Scan FME) installations
 * get scanned datasets by an Isogeo workgroup
 * get installed workers by an Isogeo Workgroup
 * export reports in CSV
@@ -25,9 +26,7 @@ A quicky class to perform some regular operations on Isogeo Scan FME database.
 In a Powershell (or Bash) command prompt:
 
 ```powershell
-py -3 -m venv venv
-.\venv3\Scripts\activate  # or source venv/bin/source on Unix OS
-pip install --upgrade -r .\requirements.txt
+pipenv install
 ```
 
 ### Settings
@@ -42,6 +41,18 @@ And complete the different parameters (database credentials...).
 
 ## Usage
 
+### Generate a report on the whole database
+
+Useful to get an overview on the installed versions.
+
 ```powershell
-python .\scanfme_db_utils.py
+python .\cli_report_global.py
+```
+
+### Generate a report on a specific workgroup
+
+Useful for support issues.
+
+```powershell
+python .\cli_report_workgroup.py --workgroup [workgroup UUID]
 ```

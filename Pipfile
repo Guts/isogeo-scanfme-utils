@@ -12,7 +12,6 @@ autopep8 = "*"
 amqp = "==2.2.*"
 gevent = "==1.2.*"
 pymongo = "==3.6.*"
-Jinja2 = "==2.*"
 click = "*"
 
 [requires]

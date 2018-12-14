@@ -11,22 +11,28 @@
 # ##################################
 
 # Standard library
+import configparser
 import csv
 import logging
 from logging.handlers import RotatingFileHandler
 from os import path
+from pathlib import Path
 import pprint
 from urllib.parse import quote_plus
 
 # 3rd party library
+import click
 from gevent import monkey
 monkey.patch_all()
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
 
-# ##############################################################################
+# #############################################################################
 # ########## Globals ###############
 # ##################################
+
+# required subfolders
+dir_reports = Path("reports/").mkdir(exist_ok=True)
 
 # settings
 log_lvl = logging.DEBUG
@@ -416,11 +422,10 @@ class IsogeoScanUtils(object):
         return csvfile
 
     def workers_report(self, csv_name: str, folder: str="./reports"):
-        """
-            Inform about installed services.
+        """Inform about installed services.
 
-            :param str csv_name: CSV filename (extension required)
-            :param str foler: parent folder where to write the CSV file
+        :param str csv_name: CSV filename (extension required)
+        :param str foler: parent folder where to write the CSV file
         """
         # retrieve data
         wks = self.wk_diagnosis(0)
@@ -481,21 +486,33 @@ class IsogeoScanUtils(object):
         return csvfile
 
 
-# ##############################################################################
-# ##### Stand alone program ########
-# ##################################
+# #############################################################################
+# ####### Command-line ############
+# #################################
 
-if __name__ == '__main__':
-    """Standalone execution."""
-    import configparser
-    settings_file = r"settings.ini"
-    # check ini file
-    if not path.isfile(path.realpath(settings_file)):
-        raise IOError("settings.ini file required")
-    else:
-        pass
-    # target
-    platform = "prod"
+@click.command()
+@click.option("--settings", default="settings.ini",
+              help="Settings file.")
+@click.option("--platform", default="prod",
+              help="Database platform to read. Available values: 'prod' | 'qa'.")
+@click.option("--platform", default="prod",
+              help="Database platform to read. Available values: 'prod' | 'qa'.")
+def cli_scanfme_reporting(settings, platform):
+    """Command-line checking settings and executing required operations.
+
+    :param str settings: path to a settings file containing credentials to read database
+    :param str platform: deployed database to read (production or quality assurance)
+    """
+    # check settings file
+    settings_file = Path(settings)
+    if not settings_file.exists():
+        raise IOError("settings file doesn't exist: {}".format(settings))
+    settings_file = Path(settings).resolve()
+    logger.info("Settings file used: {}".format(settings))
+
+    # check platform value
+    if platform not in ["prod", "qa"]:
+        raise ValueError("Platform option must be one of: prod | qa")
 
     # load settings
     config = configparser.ConfigParser()
@@ -507,6 +524,7 @@ if __name__ == '__main__':
               "db_name": config.get(platform, "db_name"),
               "replicaSet": config.get(platform, "replicaSet"),
               }
+    logger.info("Settings loaded. Database: {}".format(access.get("db_name")))
 
     # Start
     app = IsogeoScanUtils(access=access,
@@ -514,25 +532,35 @@ if __name__ == '__main__':
                           platform=platform,
                           wk_v=config.get(platform, "srv_version"))
     cli = app.connect()
+    print(cli)
 
-    # collections overview
-    print(app.colls_stats())  # per workgroup
-    print(app.colls_stats(0))  # whole DB
+    # # collections overview
+    # print(app.colls_stats())  # per workgroup
+    # print(app.colls_stats(0))  # whole DB
 
-    # datasets overview
-    print(app.ds_diagnosis())  # per workgroup
-    print(app.ds_diagnosis(0))  # whole DB
+    # # datasets overview
+    # print(app.ds_diagnosis())  # per workgroup
+    # print(app.ds_diagnosis(0))  # whole DB
 
-    # requests overview
-    print(app.rq_diagnosis())  # per workgroup
-    print(app.rq_diagnosis(0))  # whole DB
+    # # requests overview
+    # print(app.rq_diagnosis())  # per workgroup
+    # print(app.rq_diagnosis(0))  # whole DB
 
-    # srv info
-    print(app.wk_diagnosis())  # per workgroup
-    wks = app.wk_diagnosis(0)  # whole DB
-    print(wks.get("srvs_outdated")[1].keys())
+    # # srv info
+    # print(app.wk_diagnosis())  # per workgroup
+    # wks = app.wk_diagnosis(0)  # whole DB
+    # print(wks.get("srvs_outdated")[1].keys())
 
-    app.csv_report("test.csv")
-    app.csv_report("test.csv", wg=0)
+    # app.csv_report("test.csv")
+    # app.csv_report("test.csv", wg=0)
 
-    app.workers_report("test.csv")
+    # app.workers_report("test.csv")
+
+
+# #############################################################################
+# ##### Stand alone program ########
+# ##################################
+
+if __name__ == '__main__':
+    """Standalone execution."""
+    pass
