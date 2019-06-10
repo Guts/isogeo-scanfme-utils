@@ -2,8 +2,9 @@
 #! python3
 
 """
-    Connect to isogeo Scan FME database to perform some tidious and
-     repetitive tasks.
+    Command-line to manage datbase operations.
+
+    Author: Isogeo
 """
 
 # #############################################################################
@@ -19,6 +20,7 @@ from pathlib import Path
 import click
 
 # modules
+from reporting import *
 
 
 # #############################################################################
@@ -26,7 +28,8 @@ import click
 # ##################################
 
 # required subfolders
-dir_reports = Path("reports/").mkdir(exist_ok=True)
+dir_logs = Path("_logs/").mkdir(exist_ok=True)
+dir_reports = Path("_reports/").mkdir(exist_ok=True)
 
 # CSV settings (see: https://pymotw.com/3/csv/)
 csv.register_dialect("pipe",

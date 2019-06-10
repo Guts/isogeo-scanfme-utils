@@ -18,13 +18,13 @@ from scanfme_db_utils import IsogeoScanUtils
 # ##################################
 
 access = {
-          "username": environ.get("username"),
-          "password": environ.get("password"),
-          "server": environ.get("server"),
-          "port": environ.get("port"),
-          "db_name": environ.get("db_name"),
-          "replicaSet": environ.get("replicaSet"),
-          }
+    "username": environ.get("username"),
+    "password": environ.get("password"),
+    "server": environ.get("server"),
+    "port": environ.get("port"),
+    "db_name": environ.get("db_name"),
+    "replicaSet": environ.get("replicaSet"),
+}
 
 # #############################################################################
 # ######## Classes #################
@@ -33,10 +33,13 @@ access = {
 
 class DbStats(unittest.TestCase):
     """Test authentication process."""
-    app = IsogeoScanUtils(access=access,
-                          def_wg=environ.get("wg_test"),
-                          platform="qa",
-                          wk_v=environ.get("srv_version_ref"))
+
+    app = IsogeoScanUtils(
+        access=access,
+        def_wg=environ.get("wg_test"),
+        platform="qa",
+        wk_v=environ.get("srv_version_ref"),
+    )
     cli = app.connect()
 
     # standard methods
@@ -61,5 +64,5 @@ class DbStats(unittest.TestCase):
 # ######## Standalone ##############
 # ##################################
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

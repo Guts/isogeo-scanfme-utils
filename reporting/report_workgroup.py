@@ -23,6 +23,7 @@ from urllib.parse import quote_plus
 # 3rd party library
 import click
 from gevent import monkey
+
 monkey.patch_all()
 from pymongo import MongoClient, ASCENDING, DESCENDING
 from pymongo.errors import ConnectionFailure, ServerSelectionTimeoutError
@@ -41,40 +42,40 @@ log_lvl = logging.DEBUG
 logger = logging.getLogger("isogeo_scanfme_utils")
 logging.captureWarnings(True)
 logger.setLevel(log_lvl)
-log_form = logging.Formatter("%(asctime)s || %(levelname)s "
-                             "|| %(module)s || %(lineno)s || %(message)s")
+log_form = logging.Formatter(
+    "%(asctime)s || %(levelname)s " "|| %(module)s || %(lineno)s || %(message)s"
+)
 logfile = RotatingFileHandler("LOG_ScanFME_Utils.log", "a", 5000000, 1)
 logfile.setLevel(log_lvl)
 logfile.setFormatter(log_form)
 logger.addHandler(logfile)
 
 # collections
-d_colls = {'datasets': "where metadata about scanned datasets are stored | ABBRV: DS",
-           'entrypoints': "list of clients entrypoints | ABBRV: DS",
-           'geodatabases': "flat databases | ABBRV: GD",
-           'procdatasets': "history of all datasets which have been scanned | ABBRV: PD",
-           'requests': "list of requests sent to the super worker | ABBRV: RQ",
-           'sessions': "active sessions | ABBRV: SS",
-           'subscriptions': "Isogeo Worker clients registered | ABBRV: SB",
-           }
+d_colls = {
+    "datasets": "where metadata about scanned datasets are stored | ABBRV: DS",
+    "entrypoints": "list of clients entrypoints | ABBRV: DS",
+    "geodatabases": "flat databases | ABBRV: GD",
+    "procdatasets": "history of all datasets which have been scanned | ABBRV: PD",
+    "requests": "list of requests sent to the super worker | ABBRV: RQ",
+    "sessions": "active sessions | ABBRV: SS",
+    "subscriptions": "Isogeo Worker clients registered | ABBRV: SB",
+}
 
 # CSV settings (see: https://pymotw.com/3/csv/)
-csv.register_dialect("pipe",
-                     delimiter="|",
-                     escapechar="\\",
-                     skipinitialspace=1
-                     )
+csv.register_dialect("pipe", delimiter="|", escapechar="\\", skipinitialspace=1)
 
 
 # #############################################################################
 # ########## Classes ###############
 # ##################################
 
+
 class IsogeoScanUtils(object):
     """Make easy to get some metrics about Scan FME usage."""
 
-    def __init__(self, access: dict, def_wg: str=None,
-                 platform="qa", wk_v: str="2.1.0"):
+    def __init__(
+        self, access: dict, def_wg: str = None, platform="qa", wk_v: str = "2.1.0"
+    ):
         """
             Instanciate class, check parameters and add object attributes.
 
@@ -95,8 +96,9 @@ class IsogeoScanUtils(object):
         else:
             pass
 
-        if not set(("username", "password", "server",
-                    "port", "db_name", "replicaSet")) <= set(access):
+        if not set(
+            ("username", "password", "server", "port", "db_name", "replicaSet")
+        ) <= set(access):
             raise KeyError("Required keys are not present in access dict.")
         else:
             pass
@@ -117,24 +119,22 @@ class IsogeoScanUtils(object):
     def uri(self) -> str:
         """Construct URI and returns it."""
         if self.platform == "qa":
-            uri = "mongodb://{}:{}@{}:{}/{}"\
-                  .format(self.user,
-                          self.pswd,
-                          self.serv,
-                          self.port,
-                          self.db_name)
+            uri = "mongodb://{}:{}@{}:{}/{}".format(
+                self.user, self.pswd, self.serv, self.port, self.db_name
+            )
             logger.debug("QA URI built: " + uri)
         elif self.platform == "prod":
             srv0, srv1 = self.serv.split("|")
-            uri = "mongodb://{}:{}@{}:{},{}:{}/{}?replicaSet={}"\
-                  .format(self.user,
-                          self.pswd,
-                          srv0,
-                          self.port,
-                          srv1,
-                          self.port,
-                          self.db_name,
-                          self.rep_set)
+            uri = "mongodb://{}:{}@{}:{},{}:{}/{}?replicaSet={}".format(
+                self.user,
+                self.pswd,
+                srv0,
+                self.port,
+                srv1,
+                self.port,
+                self.db_name,
+                self.rep_set,
+            )
             logger.debug("PROD URI built: " + uri)
         # method end
         return uri
@@ -148,23 +148,23 @@ class IsogeoScanUtils(object):
         if self.conn_state:
             self.collections_init()
         else:
-            logger.debug("Collections can't be filled because of "
-                         "lost server connection.")
+            logger.debug(
+                "Collections can't be filled because of " "lost server connection."
+            )
 
         return self.client
 
     def check_connection(self) -> bool:
         """A quick check of server state."""
         try:
-            self.client.admin.command('ismaster')
+            self.client.admin.command("ismaster")
             return 1
         except (ConnectionFailure, ServerSelectionTimeoutError):
             return 0
 
     def collections_init(self):
         """Fillfull collectrions dict with collections objects."""
-        self.colls = {coll: self.db.get_collection(coll)
-                      for coll in d_colls}
+        self.colls = {coll: self.db.get_collection(coll) for coll in d_colls}
         pass
 
     # -- SEARCH -----------------------------------------------------------
@@ -175,45 +175,43 @@ class IsogeoScanUtils(object):
 
             :param str ds_name: dataset name to look for
         """
-        ct = self.colls.get("datasets")\
-                       .find({"groupId": self.def_wg,
-                              "featureType": ds_name
-                              })\
-                       .count()
+        ct = (
+            self.colls.get("datasets")
+            .find({"groupId": self.def_wg, "featureType": ds_name})
+            .count()
+        )
         return ct
 
     def get_ds_workgroup(self, workgroup_id: str):
         """Lists datasets which have been scanned by a specific workgroup."""
-        counter = {coll: self.db
-                             .get_collection(coll)
-                             .find({"groupId": self.def_wg})
-                   for coll in d_colls}
+        counter = {
+            coll: self.db.get_collection(coll).find({"groupId": self.def_wg})
+            for coll in d_colls
+        }
         return counter
 
     # -- METRICS -----------------------------------------------------------
 
-    def colls_stats(self, wg: bool=1) -> dict:
+    def colls_stats(self, wg: bool = 1) -> dict:
         """
             Perform basic calculation about database.
 
             :param bool wg: option to filter on the default workgroup
         """
         if wg == 1:
-            counter = {coll: self.colls.get(coll)
-                                       .find({"groupId": self.def_wg})
-                                       .count()
-                       for coll in d_colls}
+            counter = {
+                coll: self.colls.get(coll).find({"groupId": self.def_wg}).count()
+                for coll in d_colls
+            }
         elif wg == 0:
-            counter = {coll: self.db.get_collection(coll)
-                                    .count()
-                       for coll in d_colls}
+            counter = {coll: self.db.get_collection(coll).count() for coll in d_colls}
         else:
             raise ValueError("A boolean value is required.")
 
         # method end
         return counter
 
-    def ds_diagnosis(self, wg: bool=1) -> dict:
+    def ds_diagnosis(self, wg: bool = 1) -> dict:
         """
             Some diagnosis on datasets collection:
                 - count of scanned datasets without isogeo_id matching.
@@ -222,19 +220,22 @@ class IsogeoScanUtils(object):
         """
         datasets = self.colls.get("datasets")
         if wg == 1:
-            ds_report = {"no_isogeo_id": datasets.find({"groupId": self.def_wg,
-                                                        "isogeo_id": {"$exists": False}}).count(),
-                         }
+            ds_report = {
+                "no_isogeo_id": datasets.find(
+                    {"groupId": self.def_wg, "isogeo_id": {"$exists": False}}
+                ).count()
+            }
         elif wg == 0:
-            ds_report = {"no_isogeo_id": datasets.find({"isogeo_id": {"$exists": False}}).count(),
-                         }
+            ds_report = {
+                "no_isogeo_id": datasets.find({"isogeo_id": {"$exists": False}}).count()
+            }
         else:
             raise ValueError("A boolean value is required.")
 
         # method end
         return ds_report
 
-    def rq_diagnosis(self, wg: bool=1):
+    def rq_diagnosis(self, wg: bool = 1):
         """
             Inform about requests.
 
@@ -243,83 +244,87 @@ class IsogeoScanUtils(object):
         rqs = self.colls.get("requests")
         if wg == 1:
             # finished requests
-            rq_finish = rqs.find({"groupId": self.def_wg,
-                                  "state": "finished"}).count()
+            rq_finish = rqs.find({"groupId": self.def_wg, "state": "finished"}).count()
             if rq_finish:
-                rq_finish_last = rqs.find({"groupId": self.def_wg,
-                                           "state": "finished"}).limit(1)[0]\
-                                                                .get("_id"),
+                rq_finish_last = (
+                    rqs.find({"groupId": self.def_wg, "state": "finished"})
+                    .limit(1)[0]
+                    .get("_id"),
+                )
             else:
                 rq_finish_last = None
                 pass
             # broken requests
-            rq_broken = rqs.find({"groupId": self.def_wg,
-                                  "state": "broken"}).count()
+            rq_broken = rqs.find({"groupId": self.def_wg, "state": "broken"}).count()
             if rq_broken:
-                rq_broken_last = rqs.find({"groupId": self.def_wg,
-                                           "state": "broken"}).limit(1)[0]\
-                                                              .get("err"),
+                rq_broken_last = (
+                    rqs.find({"groupId": self.def_wg, "state": "broken"})
+                    .limit(1)[0]
+                    .get("err"),
+                )
             else:
                 rq_broken_last = None
                 pass
             # killed requests
-            rq_killed = rqs.find({"groupId": self.def_wg,
-                                  "state": "killed"}).count()
+            rq_killed = rqs.find({"groupId": self.def_wg, "state": "killed"}).count()
             if rq_killed:
-                rq_killed_last = rqs.find({"groupId": self.def_wg,
-                                           "state": "killed"}).limit(1)[0]\
-                                                              .get("err"),
+                rq_killed_last = (
+                    rqs.find({"groupId": self.def_wg, "state": "killed"})
+                    .limit(1)[0]
+                    .get("err"),
+                )
             else:
                 rq_killed_last = None
                 pass
             # storing
-            rq_report = {"rq_finish": rq_finish,
-                         "rq_finish_last": rq_finish_last,
-                         "rq_broken": rq_broken,
-                         "rq_broken_last": rq_broken_last,
-                         "rq_killed": rq_killed,
-                         "rq_killed_last": rq_killed_last,
-                         }
+            rq_report = {
+                "rq_finish": rq_finish,
+                "rq_finish_last": rq_finish_last,
+                "rq_broken": rq_broken,
+                "rq_broken_last": rq_broken_last,
+                "rq_killed": rq_killed,
+                "rq_killed_last": rq_killed_last,
+            }
         elif wg == 0:
             # finished requests
             rq_finish = rqs.find({"state": "finished"}).count()
             if rq_finish:
-                rq_finish_last = rqs.find({"state": "finished"}).limit(1)[0]\
-                                                                .get("_id"),
+                rq_finish_last = (
+                    rqs.find({"state": "finished"}).limit(1)[0].get("_id"),
+                )
             else:
                 rq_finish_last = None
                 pass
             # broken requests
             rq_broken = rqs.find({"state": "broken"}).count()
             if rq_broken:
-                rq_broken_last = rqs.find({"state": "broken"}).limit(1)[0]\
-                                                              .get("err"),
+                rq_broken_last = (rqs.find({"state": "broken"}).limit(1)[0].get("err"),)
             else:
                 rq_broken_last = None
                 pass
             # killed requests
             rq_killed = rqs.find({"state": "killed"}).count()
             if rq_killed:
-                rq_killed_last = rqs.find({"state": "killed"}).limit(1)[0]\
-                                                              .get("err"),
+                rq_killed_last = (rqs.find({"state": "killed"}).limit(1)[0].get("err"),)
             else:
                 rq_killed_last = None
                 pass
             # storing
-            rq_report = {"rq_finish": rq_finish,
-                         "rq_finish_last": rq_finish_last,
-                         "rq_broken": rq_broken,
-                         "rq_broken_last": rq_broken_last,
-                         "rq_killed": rq_killed,
-                         "rq_killed_last": rq_killed_last,
-                         }
+            rq_report = {
+                "rq_finish": rq_finish,
+                "rq_finish_last": rq_finish_last,
+                "rq_broken": rq_broken,
+                "rq_broken_last": rq_broken_last,
+                "rq_killed": rq_killed,
+                "rq_killed_last": rq_killed_last,
+            }
         else:
             raise ValueError("A boolean value is required.")
 
         # method end
         return rq_report
 
-    def wk_diagnosis(self, wg: bool=1):
+    def wk_diagnosis(self, wg: bool = 1):
         """
             Inform about installed services in a workgroup.
 
@@ -327,22 +332,39 @@ class IsogeoScanUtils(object):
         """
         wks = self.colls.get("subscriptions")
         if wg == 1:
-            wk_report = {"srvs_uptodate": wks.find({"groupId": self.def_wg,
-                                                    "workers.version": self.wk_vers}),
-                         "srvs_outdated": wks.find({"groupId": self.def_wg,
-                                                    "workers": {"$exists": 1},
-                                                    "workers.version": {"$ne": self.wk_vers}}),
-                         "srvs_no_created": wks.find({"groupId": self.def_wg,
-                                                      "workers": {"$exists": 0}
-                                                      }),
-                         }
+            wk_report = {
+                "srvs_uptodate": wks.find(
+                    {"groupId": self.def_wg, "workers.version": self.wk_vers}
+                ),
+                "srvs_outdated": wks.find(
+                    {
+                        "groupId": self.def_wg,
+                        "workers": {"$exists": 1},
+                        "workers.version": {"$ne": self.wk_vers},
+                    }
+                ),
+                "srvs_no_created": wks.find(
+                    {"groupId": self.def_wg, "workers": {"$exists": 0}}
+                ),
+            }
         elif wg == 0:
-            wk_report = {"srvs_uptodate": wks.find({"workers.version": self.wk_vers}).sort("groupId", ASCENDING),
-                         "srvs_outdated": wks.find({"workers": {"$exists": 1},
-                                                    "workers.version": {"$ne": self.wk_vers}}).sort("groupId", ASCENDING),
-                         "srvs_no_created": wks.find({"workers": {"$exists": 0}}).sort("groupId", ASCENDING),
-                         "srvs_no_install": wks.find({"workers": {"$size": 0}}).sort("groupId", ASCENDING),
-                         }
+            wk_report = {
+                "srvs_uptodate": wks.find({"workers.version": self.wk_vers}).sort(
+                    "groupId", ASCENDING
+                ),
+                "srvs_outdated": wks.find(
+                    {
+                        "workers": {"$exists": 1},
+                        "workers.version": {"$ne": self.wk_vers},
+                    }
+                ).sort("groupId", ASCENDING),
+                "srvs_no_created": wks.find({"workers": {"$exists": 0}}).sort(
+                    "groupId", ASCENDING
+                ),
+                "srvs_no_install": wks.find({"workers": {"$size": 0}}).sort(
+                    "groupId", ASCENDING
+                ),
+            }
         else:
             raise ValueError("A boolean value is required.")
 
@@ -351,7 +373,7 @@ class IsogeoScanUtils(object):
 
     # -- CSV REPORT ----------------------------------------------------------
 
-    def csv_report(self, csv_name: str, wg: bool=1, folder: str="./reports"):
+    def csv_report(self, csv_name: str, wg: bool = 1, folder: str = "./reports"):
         """
             Inform about installed services in a workgroup.
 
@@ -366,31 +388,39 @@ class IsogeoScanUtils(object):
             stats_rq = self.rq_diagnosis()
             stats_wk = self.wk_diagnosis()
             # prepare csv output file
-            csv_out = path.normpath(path.join(folder,
-                                              "ScanFME_Report_{}_{}_{}"
-                                              .format(self.platform.upper(),
-                                                      self.def_wg,
-                                                      csv_name))
-                                    )
-            with open(csv_out, 'w', newline='') as csvfile:
-                fieldnames = ("wg_id", "wg_url", "wg_ds_count",
-                              "wg_ep_count", "wg_wk_count", "wg_rq_count",
-                              "wg_gd_count", "wg_pd_count")
-                writer = csv.DictWriter(csvfile,
-                                        dialect="pipe",
-                                        fieldnames=fieldnames)
+            csv_out = path.normpath(
+                path.join(
+                    folder,
+                    "ScanFME_Report_{}_{}_{}".format(
+                        self.platform.upper(), self.def_wg, csv_name
+                    ),
+                )
+            )
+            with open(csv_out, "w", newline="") as csvfile:
+                fieldnames = (
+                    "wg_id",
+                    "wg_url",
+                    "wg_ds_count",
+                    "wg_ep_count",
+                    "wg_wk_count",
+                    "wg_rq_count",
+                    "wg_gd_count",
+                    "wg_pd_count",
+                )
+                writer = csv.DictWriter(csvfile, dialect="pipe", fieldnames=fieldnames)
                 writer.writeheader()
-                writer.writerow({"wg_id": self.def_wg,
-                                 "wg_url": "https://daemons.isogeo.com/g/{}"
-                                           .format(self.def_wg),
-                                 "wg_ds_count": stats_colls.get("datasets"),
-                                 "wg_wk_count": stats_colls.get("subscriptions"),
-                                 "wg_rq_count": stats_colls.get("requests"),
-                                 "wg_ep_count": stats_colls.get("entrypoints"),
-                                 "wg_gd_count": stats_colls.get("geodatabases"),
-                                 "wg_pd_count": stats_colls.get("procdatasets"),
-                                 }
-                                )
+                writer.writerow(
+                    {
+                        "wg_id": self.def_wg,
+                        "wg_url": "https://daemons.isogeo.com/g/{}".format(self.def_wg),
+                        "wg_ds_count": stats_colls.get("datasets"),
+                        "wg_wk_count": stats_colls.get("subscriptions"),
+                        "wg_rq_count": stats_colls.get("requests"),
+                        "wg_ep_count": stats_colls.get("entrypoints"),
+                        "wg_gd_count": stats_colls.get("geodatabases"),
+                        "wg_pd_count": stats_colls.get("procdatasets"),
+                    }
+                )
         elif wg == 0:
             # retrieve data
             stats_colls = self.colls_stats(0)
@@ -398,30 +428,30 @@ class IsogeoScanUtils(object):
             stats_rq = self.rq_diagnosis(0)
             stats_wk = self.wk_diagnosis(0)
             # prepare csv output file
-            csv_out = path.normpath(path.join(folder, "ScanFME_Report_{}_DB_{}"
-                                                      .format(self.platform,
-                                                              csv_name))
-                                    )
-            with open(csv_out, 'w', newline='') as csvfile:
+            csv_out = path.normpath(
+                path.join(
+                    folder, "ScanFME_Report_{}_DB_{}".format(self.platform, csv_name)
+                )
+            )
+            with open(csv_out, "w", newline="") as csvfile:
                 fieldnames = ("wg_id", "wg_url", "wg_ds_count", "")
-                writer = csv.DictWriter(csvfile,
-                                        dialect="pipe",
-                                        fieldnames=fieldnames)
+                writer = csv.DictWriter(csvfile, dialect="pipe", fieldnames=fieldnames)
                 writer.writeheader()
-                writer.writerow({"wg_id": "hoho",
-                                 "wg_url": "https://daemons.isogeo.com/g/{}"
-                                           .format(self.def_wg),
-                                 "wg_url": "hihi",
-                                 "wg_ds_count": "héhé",
-                                 }
-                                )
+                writer.writerow(
+                    {
+                        "wg_id": "hoho",
+                        "wg_url": "https://daemons.isogeo.com/g/{}".format(self.def_wg),
+                        "wg_url": "hihi",
+                        "wg_ds_count": "héhé",
+                    }
+                )
         else:
             raise ValueError("A boolean value is required.")
 
         # end method
         return csvfile
 
-    def workers_report(self, csv_name: str, folder: str="./reports"):
+    def workers_report(self, csv_name: str, folder: str = "./reports"):
         """Inform about installed services.
 
         :param str csv_name: CSV filename (extension required)
@@ -430,57 +460,76 @@ class IsogeoScanUtils(object):
         # retrieve data
         wks = self.wk_diagnosis(0)
         # prepare csv output file
-        csv_out = path.normpath(path.join(folder,
-                                          "ScanFME_Report_Workers_{}_{}"
-                                          .format(self.platform,
-                                                  csv_name))
-                                )
-        with open(csv_out, 'w', newline='') as csvfile:
-            fieldnames = ("wg_id", "wg_url", "wk_id", "wk_count", "wk_uptodate", "wk_name", "wk_version")
-            writer = csv.DictWriter(csvfile,
-                                    dialect="pipe",
-                                    fieldnames=fieldnames)
+        csv_out = path.normpath(
+            path.join(
+                folder, "ScanFME_Report_Workers_{}_{}".format(self.platform, csv_name)
+            )
+        )
+        with open(csv_out, "w", newline="") as csvfile:
+            fieldnames = (
+                "wg_id",
+                "wg_url",
+                "wk_id",
+                "wk_count",
+                "wk_uptodate",
+                "wk_name",
+                "wk_version",
+            )
+            writer = csv.DictWriter(csvfile, dialect="pipe", fieldnames=fieldnames)
             writer.writeheader()
             try:
                 for wk in wks.get("srvs_uptodate"):
-                    writer.writerow({"wg_id": wk.get("groupId"),
-                                     "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker"
-                                               .format(wk.get("groupId")),
-                                     "wk_id": wk.get("_id"),
-                                     "wk_count": len(wk.get("workers")),
-                                     "wk_uptodate": 1,
-                                     "wk_name": wk.get("workers")[0].get("givenName"),
-                                     "wk_version": wk.get("workers")[0].get("version"),
-                                     }
-                                    )
+                    writer.writerow(
+                        {
+                            "wg_id": wk.get("groupId"),
+                            "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker".format(
+                                wk.get("groupId")
+                            ),
+                            "wk_id": wk.get("_id"),
+                            "wk_count": len(wk.get("workers")),
+                            "wk_uptodate": 1,
+                            "wk_name": wk.get("workers")[0].get("givenName"),
+                            "wk_version": wk.get("workers")[0].get("version"),
+                        }
+                    )
                 for wk in wks.get("srvs_outdated"):
                     if len(wk.get("workers")) == 0:
-                        wk["workers"] = [{"givenName": "",
-                                          "version": ""}, ]
+                        wk["workers"] = [{"givenName": "", "version": ""}]
                     else:
                         pass
-                    writer.writerow({"wg_id": wk.get("groupId"),
-                                     "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker"
-                                               .format(wk.get("groupId")),
-                                     "wk_id": wk.get("_id"),
-                                     "wk_count": len(wk.get("workers", "")),
-                                     "wk_uptodate": 0,
-                                     "wk_name": wk.get("workers")[0].get("givenName"),
-                                     "wk_version": wk.get("workers")[0].get("version"),
-                                     }
-                                    )
+                    writer.writerow(
+                        {
+                            "wg_id": wk.get("groupId"),
+                            "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker".format(
+                                wk.get("groupId")
+                            ),
+                            "wk_id": wk.get("_id"),
+                            "wk_count": len(wk.get("workers", "")),
+                            "wk_uptodate": 0,
+                            "wk_name": wk.get("workers")[0].get("givenName"),
+                            "wk_version": wk.get("workers")[0].get("version"),
+                        }
+                    )
                 for wk in wks.get("srvs_no_created"):
-                    writer.writerow({"wg_id": wk.get("groupId"),
-                                     "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker"
-                                               .format(wk.get("groupId")),
-                                     "wk_id": wk.get("_id"),
-                                     "wk_count": 0,
-                                     "wk_uptodate": 0,
-                                     }
-                                    )
+                    writer.writerow(
+                        {
+                            "wg_id": wk.get("groupId"),
+                            "wg_url": "https://app.isogeo.com/groups/{}/admin/isogeo-worker".format(
+                                wk.get("groupId")
+                            ),
+                            "wk_id": wk.get("_id"),
+                            "wk_count": 0,
+                            "wk_uptodate": 0,
+                        }
+                    )
             except Exception as e:
                 logger.error(e)
-                logger.error("https://mlab.com/clusters/rs-ds053053/databases/scanfme-prod-cluster/collections/subscriptions?_id={}".format(wk.get("_id")), wk.get("workers"))
+                logger.error(
+                    "https://mlab.com/clusters/rs-ds053053/databases/scanfme-prod-cluster/collections/subscriptions?_id={}".format(
+                        wk.get("_id")
+                    ),
+                    wk.get("workers"),
+                )
 
         # end method
         return csvfile
@@ -490,13 +539,19 @@ class IsogeoScanUtils(object):
 # ####### Command-line ############
 # #################################
 
+
 @click.command()
-@click.option("--settings", default="settings.ini",
-              help="Settings file.")
-@click.option("--platform", default="prod",
-              help="Database platform to read. Available values: 'prod' | 'qa'.")
-@click.option("--platform", default="prod",
-              help="Database platform to read. Available values: 'prod' | 'qa'.")
+@click.option("--settings", default="settings.ini", help="Settings file.")
+@click.option(
+    "--platform",
+    default="prod",
+    help="Database platform to read. Available values: 'prod' | 'qa'.",
+)
+@click.option(
+    "--platform",
+    default="prod",
+    help="Database platform to read. Available values: 'prod' | 'qa'.",
+)
 def cli_scanfme_reporting(settings, platform):
     """Command-line checking settings and executing required operations.
 
@@ -517,20 +572,23 @@ def cli_scanfme_reporting(settings, platform):
     # load settings
     config = configparser.ConfigParser()
     config.read(settings_file)
-    access = {"username": config.get(platform, "username"),
-              "password": config.get(platform, "password"),
-              "server": config.get(platform, "server"),
-              "port": config.get(platform, "port"),
-              "db_name": config.get(platform, "db_name"),
-              "replicaSet": config.get(platform, "replicaSet"),
-              }
+    access = {
+        "username": config.get(platform, "username"),
+        "password": config.get(platform, "password"),
+        "server": config.get(platform, "server"),
+        "port": config.get(platform, "port"),
+        "db_name": config.get(platform, "db_name"),
+        "replicaSet": config.get(platform, "replicaSet"),
+    }
     logger.info("Settings loaded. Database: {}".format(access.get("db_name")))
 
     # Start
-    app = IsogeoScanUtils(access=access,
-                          def_wg=config.get(platform, "wg"),
-                          platform=platform,
-                          wk_v=config.get(platform, "srv_version"))
+    app = IsogeoScanUtils(
+        access=access,
+        def_wg=config.get(platform, "wg"),
+        platform=platform,
+        wk_v=config.get(platform, "srv_version"),
+    )
     cli = app.connect()
     print(cli)
 
@@ -561,6 +619,6 @@ def cli_scanfme_reporting(settings, platform):
 # ##### Stand alone program ########
 # ##################################
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     """Standalone execution."""
     pass

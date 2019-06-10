@@ -18,13 +18,13 @@ from scanfme_db_utils import IsogeoScanUtils
 # ##################################
 
 access = {
-          "username": environ.get("username"),
-          "password": environ.get("password"),
-          "server": environ.get("server"),
-          "port": environ.get("port"),
-          "db_name": environ.get("db_name"),
-          "replicaSet": environ.get("replicaSet"),
-          }
+    "username": environ.get("username"),
+    "password": environ.get("password"),
+    "server": environ.get("server"),
+    "port": environ.get("port"),
+    "db_name": environ.get("db_name"),
+    "replicaSet": environ.get("replicaSet"),
+}
 
 # #############################################################################
 # ######## Classes #################
@@ -46,10 +46,12 @@ class DbAuthentication(unittest.TestCase):
     # tests
     def test_db_auth(self):
         """API secret must be 64 length."""
-        app = IsogeoScanUtils(access=access,
-                              def_wg=environ.get("wg_test"),
-                              platform="qa",
-                              wk_v=environ.get("srv_version_ref"))
+        app = IsogeoScanUtils(
+            access=access,
+            def_wg=environ.get("wg_test"),
+            platform="qa",
+            wk_v=environ.get("srv_version_ref"),
+        )
         cli = app.connect()
         self.assertIsInstance(cli, pymongo.mongo_client.MongoClient)
 
@@ -58,5 +60,5 @@ class DbAuthentication(unittest.TestCase):
 # ######## Standalone ##############
 # ##################################
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()
