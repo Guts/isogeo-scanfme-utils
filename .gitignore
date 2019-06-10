@@ -107,3 +107,7 @@ settings.ini
 
 # virtual environments
 venv*
+
+# output files
+*.csv
+*.xlsx
